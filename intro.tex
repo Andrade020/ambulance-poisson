@@ -1,0 +1,318 @@
+
+
+\begin{abstract}
+We consider models for spatiotemporal Poisson processes with some missing location data.
+We discuss four models that make provision for missing location data, and their estimation.
+The corresponding code is available on GitHub as an extension of LASPATED at {\url{https://github.com/vguigues/LASPATED}} in the Missing\_Data subdirectory.
+We tested our models using the process of emergency call arrivals to an emergency medical service where the emergency reports often omit the location of the emergency.
+We show the difference made by using models that make provision for missing location data.
+\end{abstract}
+
+\textbf{Keywords:} Spatiotemporal data, missing data, regularized likelihood estimator, regression.
+
+\section{Introduction}
+
+The study of spatiotemporal data
+and the development of statistical models
+for such data is important for many real-life applications. One such application is the 
+management of a fleet of ambulances
+of an Emergency Medical Service (EMS)
+which requires studying the process of
+emergency calls. These calls
+have temporal information: the instant
+of the call, spatial information: the location
+of the call, and additional features such
+as the priority of the call. This application
+has been the object of a huge research work,
+see for instance
+\citep{fitz:73,gree:04,chai:72,jagt:17a,lisay:16,mcla:13b,mcla:13a,band:14,band:12,schm:12,lees:12,lees:11,ande:07,mayo:13,swov:73b,swov:73a,tore:71,dask:83,dask:81,berl:74,chur:74,Talarico2015} and references therein.
+For that application, we developed
+in \citep{guiklevhn2022}, \citep{ourheuristics23a}
+\citep{websiteambrouting24}, optimization,
+management, and visualization tools for
+the management of the fleet of ambulances
+of an EMS. These optimization models
+are based on a rolling horizon approach 
+\citep{guiguessagastiz2012,guiguessagastiz2010}
+where each time a decision is taken a two-stage
+stochastic program is solved using
+scenarios of future calls. For 
+the generation of these scenarios, we developed
+statistical models and a library called LASPATED (Library for the Analysis of SPAtio TEmporal
+Discrete data), 
+see \citep{laspatedpaper, laspatedmanual}
+for details. These statistical models assume that
+for every call, we both have a time stamp
+and the location of the call. 
+Our models were tested with data from Rio
+de Janeiro EMS.
+However, we became aware, collaborating
+with this EMS, that many emergency calls came without
+the information of the location of the call. In this context,
+the objective of this paper is twofold: (i)
+develop statistical models for spatiotemporal
+data that can deal with missing locations
+and test these models with our historical
+data of emergency calls to Rio de Janeiro EMS
+and (ii) extend LASPATED software incorporating
+in LASPATED the
+calibration and test functions for the statistical
+models we developed to deal with missing
+locations.
+Though there is already rich literature
+on statistical models to deal with missing data, see for instance \citep{bookmd1, bookmd2,bookmd3},
+our main contribution is to develop and test
+extensions
+of the specific models we proposed recently in
+LASPATED
+\citep{laspatedpaper, laspatedmanual}
+to the case where some of the locations are not
+present in the data. 
+We also make our code
+publicly available on GitHub and integrate it
+in LASPATED, as an extension of our first version
+of LASPATED.
+The outline of the paper is the following.
+In LASPATED, we proposed two types of models
+(one without covariates and one with covariates)
+based on a time and space discretization of the
+data. If $\mathcal{T}$ is a partition of time
+and $\mathcal{I}$ a partition of the studied
+area into zones and if $\mathcal{C}$
+is the set of arrival types, we assume that
+the process of arrivals for time interval
+$t \in \mathcal{T}$, zone $i \in \mathcal{I}$,
+and arrival type $c \in \mathcal{C}$ is Poisson
+with some intensity $\lambda_{c,i,t}$.
+In Section \ref{sec:model1}, we propose
+a modification of these models
+(both non-regularized and regularized) as a splitting of Poisson processes with probabilities of missing the location either fixed or depending on arrival type and time.
+In Section \ref{sec:model1m2}, we propose
+another extension of the models from LASPATED
+where the probability that an observation with missing location comes from a zone is proportional to the population of this zone.
+In Section \ref{sec:num}, we present numerical
+experiments applied to the aforementioned
+data of emergency calls to Rio de Janeiro EMS,
+comparing the performance
+of our two models with simple estimators that
+discard calls without locations. 
+\if{
+Due to space limitations, figures
+of our numerical experiments
+are reported in the online companion
+\cite{laspatedmissingarxiv} of this
+paper and  figure
+numbers correspond to the number of 
+the figures in this online 
+companion.
+}\fi
+
+
+\section{Poisson Model with Estimated Probabilities of Missing Location Data}
+\label{sec:model1}
+
+\subsection{Maximum Likelihood Estimators}
+\label{sec:model1ml}
+
+Let $\mathcal{I}$ denote the set of zones that form a partition of the region that contains the data, let $\mathcal{T}$ denote a partition of time into time intervals, and let $\mathcal{C}$ denote the set of arrival types.
+Let $\mathcal{D}_{t}$ denote the duration of time interval $t \in \mathcal{T}$.
+Consider a Poisson process model in which the number of arrivals $X_{c,i,t,n}$ for arrival type $c$, zone $i$, time interval $t$, and observation $n$ is Poisson distributed with mean 
+$\lambda_{c,i,t} \mathcal{D}_{t}$.
+For every arrival type $c$ and time interval $t$, let
+\begin{equation}
+\label{sct}
+S_{c,t} \ \ := \ \ \sum_{i \in \mathcal{I}} \lambda_{c,i,t}
+\end{equation}
+denote the sum of Poisson intensities over all zones.
+Assume that for each arrival, there is a probability~$p$ that the location of the arrival is not reported (and probability $1-p$ that the location is reported).
+The Bernoulli random variables indicating whether the location is reported or not are independent.
+In this model, the probability of reporting the location does not depend on the zone, the arrival type, or the time interval.
+
+Let $\mathcal{A}$ denote the set of arrivals, which is partitioned into $2$~subsets: $\mathcal{A} = \mathcal{A}^{0} \cup \mathcal{A}^{1}$.
+The arrivals in $\mathcal{A}^{0}$ do not contain data about the location of the arrival, and the arrivals in $\mathcal{A}^{1}$ contain data about the location of the arrival.
+
+Observation refers to a count of the number of arrivals in $\mathcal{A}^{0}$ for an arrival type~$c$ during a time interval~$t$ or to a count of the number of arrivals in $\mathcal{A}^{1}$ for an arrival type~$c$ in a zone~$i$ during a time interval~$t$.
+For each $c \in \mathcal{C}$ and $t \in \mathcal{T}$, let $N^{0}_{c,t}$ denote the number of observations in $\mathcal{A}^{0}$ for arrival type~$c$ and time interval~$t$, and let these observations be indexed $n = 1,\ldots,N^{0}_{c,t}$.
+For each $c \in \mathcal{C}$, $i \in \mathcal{I}$, and $t \in \mathcal{T}$, let $N^{1}_{c,i,t}$ denote the number of observations for arrival type~$c$, zone~$i$, and time interval~$t$, and let these observations be indexed $n = 1,\ldots,N^{1}_{c,i,t}$.
+Assume that for each $c \in \mathcal{C}$, $i \in \mathcal{I}$, and $t \in \mathcal{T}$, it holds that $N^{1}_{c,i,t} = N^{0}_{c,t}$, and that observation $n \in \{1,\ldots,N^{1}_{c,i,t}\}$ corresponds to observation $n \in \{1,\ldots,N^{0}_{c,t}\}$, for example, these observations were made during the same week.
+In what follows, we use the simplified notation $N_{c,t}$ for the common value of $N_{c,t}^{0}$ and $N_{c,i,t}^{1}$.
+
+The Poisson process of all arrivals is the aggregation of the following two independent Poisson processes: 
+\begin{itemize}
+\item
+the Poisson process of arrivals for which the location is reported, with corresponding random number of arrivals $Y_{c,i,t,n}$ for arrival type~$c$, zone~$i$, time interval~$t$, and observation $n$, and
+\item
+the Poisson process of arrivals for which the location is not reported with corresponding random number of arrivals $Z_{c,t,n}$ for arrival type~$c$, time interval~$t$, and observation~$n$.
+\end{itemize}
+Thus $Y_{c,i,t,n}$ is Poisson with mean $(1-p) \lambda_{c,i,t} \mathcal{D}_{t}$, and $Z_{c,t,n}$ is Poisson with mean $p S_{c,t} \mathcal{D}_{t}$.
+For the process of calls with reported locations, let $M_{c,i,t,n}^{1}$ denote the number of arrivals for arrival type~$c$, zone~$i$, time interval~$t$, and observation~$n$.
+Also, let 
+$$
+M_{c,\bullet,t,n}^{1} \ \ := \ \ \sum_{i \in \mathcal{I}} M_{c,i,t,n}^{1}
+$$
+denote the total number of arrivals over all zones for which the zone is reported, for arrival type~$c$, time interval~$t$, and observation~$n$, let
+$$
+M_{c,i,t,\bullet}^{1} \ \ := \ \ \sum_{n=1}^{N_{c,t}}  M_{c,i,t,n}^{1}
+$$
+denote the total number of arrivals over all observations for which the zone is reported, for arrival type~$c$, zone~$i$, and time interval~$t$, let
+$$
+M_{c,\bullet,t,\bullet}^{1} \ \ := \ \ \sum_{i \in \mathcal{I}} \sum_{n=1}^{N_{c,t}} M_{c,i,t,n}^{1}
+$$
+denote the total number of arrivals over all zones and observations for which the zone is reported, for arrival type~$c$, time interval~$t$, and let
+$$
+M^{1} \ \ := \ \ \sum_{c \in \mathcal{C}} \sum_{i \in \mathcal{I}} \sum_{t \in \mathcal{T}} \sum_{n=1}^{N_{c,t}} M_{c,i,t,n}^{1}
+$$
+denote the total number of all arrivals for which the location is reported.
+
+For the process of calls with locations not reported, let $M_{c,t,n}^{0}$ denote the number of arrivals for arrival type~$c$, time interval~$t$, and observation~$n$.
+Also, let
+$$
+M_{c,t,\bullet}^{0} \ \ := \ \ \sum_{n=1}^{N_{c,t}} M_{c,t,n}^{0}
+$$
+denote the total number of arrivals over all observations for which the zone is not reported, for arrival type~$c$ and time interval~$t$, and let
+$$
+M^{0} \ \ := \ \ \sum_{c \in \mathcal{C}} \sum_{t \in \mathcal{T}} \sum_{n=1}^{N_{c,t}} M_{c,t,n}^{0}
+$$
+the total number of all arrivals for which the zone is not reported.
+
+Next we consider estimation of parameters $\lambda := (\lambda_{c,i,t}, c \in \mathcal{C}, i \in \mathcal{I}, t \in \mathcal{T})$ and $p$.
+
+The likelihood function of the observed data is given by
+\begin{align*}
+L_{1}(\lambda,p) \ \ & = \ \ \prod_{c \in \mathcal{C}} \prod_{t \in \mathcal{T}} \prod_{n=1}^{N_{c,t}} \mathbb{P}(Z_{c,t,n} = M_{c,t,n}^{0}) \prod_{i \in \mathcal{I}} \mathbb{P}(Y_{c,i,t,n} = M_{c,i,t,n}^{1}) \\
+& = \ \ \prod_{c \in \mathcal{C}} \prod_{t \in \mathcal{T}} \prod_{n=1}^{N_{c,t}} \exp(-p S_{c,t} \mathcal{D}_{t}) \frac{(p S_{c,t}\mathcal{D}_{t})^{M_{c,t,n}^{0}}}{M_{c,t,n}^{0}!} \prod_{i \in \mathcal{I}} \exp(-(1-p) \lambda_{c,i,t} \mathcal{D}_{t}) \frac{((1-p) \lambda_{c,i,t} \mathcal{D}_{t})^{M_{c,i,t,n}^{1}}}{M_{c,i,t,n}^{1}!}
+\end{align*}
+and therefore the log-likelihood function is given, up to a constant term that can be dropped for maximization, by
+$$ 
+\mathscr{L}_{1}(\lambda,p) \ \ = \ \ M^{1} \log(1-p) + M^{0} \log(p) + \sum_{c \in \mathcal{C}} \sum_{t \in \mathcal{T}} \left(-N_{c,t} S_{c,t} \mathcal{D}_{t} + M_{c,t,\bullet}^{0} \log(S_{c,t}) + \sum_{i \in \mathcal{I}} M_{c,i,t,\bullet}^{1} \log(\lambda_{c,i,t})\right).  
+$$
+The estimator $(\hat{\lambda},\hat{p})$ that maximizes $\mathscr{L}_{1}(\lambda,p)$ satisfies
+$$
+\frac{\partial \mathscr{L}_{1}(\hat{\lambda},\hat{p})}{\partial \lambda} \ \ = \ \ 0 \quad \mbox{and} \quad \frac{\partial \mathscr{L}_{1}(\hat{\lambda},\hat{p})}{\partial p} \ \ = \ \ 0
+$$
+which gives
+\begin{equation}
+\label{solvelp1}
+\begin{array}{l}
+\displaystyle \frac{M^{0}}{\hat{p}} - \frac{M^{1}}{1 - \hat{p}} \ \ = \ \ 0 \\
+\displaystyle \frac{M_{c,t,\bullet}^{0}}{\hat{S}_{c,t}} - N_{c,t} \mathcal{D}_{t} + \frac{M_{c,i,t,\bullet}^{1}}{\hat{\lambda}_{c,i,t}} \ \ = \ \ 0, \quad \forall \ c \in \mathcal{C}, \ t \in \mathcal{T}, \ i \in \mathcal{I},
+\end{array}
+\end{equation}
+where
+\begin{equation}
+\label{defshat}
+\hat{S}_{c,t} \ \ = \ \ \sum_{i \in \mathcal{I}} \hat{\lambda}_{c,i,t}.
+\end{equation}
+It follows from~\eqref{solvelp1} that
+\begin{equation}
+\label{formp}
+\hat{p} \ \ = \ \ \frac{M^{0}}{M^{1} + M^{0}}.
+\end{equation}
+Thus \eqref{formp} provides a very natural estimator of $p$ which is the empirical probability of not reporting the location, namely the total number $M^{0}$ of arrivals where the location is not reported divided by the total number $M^{1} + M^{0}$ of arrivals.
+It also follows from~\eqref{solvelp1} that
+\begin{equation}
+\label{lambdaf1}
+\hat{S}_{c,t} \ \ = \ \ \frac{M_{c,\bullet,t,\bullet}^{1} + M_{c,t,\bullet}^{0}}{N_{c,t} \mathcal{D}_{t}}.
+\end{equation}
+and
+\begin{equation}
+\label{lambdaf}
+\hat{\lambda}_{c,i,t} \ \ = \ \ \frac{\hat{S}_{c,t} M_{c,i,t,\bullet}^{1}}{M_{c,\bullet,t,\bullet}^{1}}
+\ \ = \ \ \underbrace{\left(\frac{M_{c,\bullet,t,\bullet}^{1} + M_{c,t,\bullet}^{0}}{M_{c,\bullet,t,\bullet}^{1}}\right)}_{1 / (1 - \hat{p}_{c,t})}
+\underbrace{\left(\frac{M_{c,i,t,\bullet}^{1}}{N_{c,t} \mathcal{D}_{t}}\right)}_{\overline{\lambda}_{c,i,t} / \mathcal{D}_{t}}.
+\end{equation}
+Thus a very natural empirical estimator of intensities $\lambda_{c,i,t}$ is obtained.
+Here,
+\begin{equation}
+\label{estimpct}
+\hat{p}_{c,t} \ \ = \ \ \frac{M_{c,t,\bullet}^{0}}{M_{c,\bullet,t,\bullet}^{1} + M_{c,t,\bullet}^{0}}.
+\end{equation}
+denotes the empirical estimator of the probability~$p$ of not reporting for arrival type~$c$ and time interval~$t$, and
+$$
+\overline{\lambda}_{c,i,t} \ \ = \ \ \frac{M_{c,i,t,\bullet}^{1}}{N_{c,t}}
+$$
+denotes the empirical estimator of the mean number of arrivals $(1-p) \lambda_{c,i,t} \mathcal{D}_{t}$, for arrival type~$c$, zone~$i$, and time interval~$t$, for which the location is reported.
+%The empirical estimation $\lambda^*_{c,i,t}$ of $\lambda_{c,i,t}$ therefore solves 
+%$$
+%(1 - \hat{p}_{c,t}) \lambda^{*}_{c,i,t} \mathcal{D}_{t} \ \ = \ \ \overline{\lambda}_{c,i,t} \ \ = \ \ \frac{M_{c,i,t,\bullet}^{1}}{N_{c,t}}
+%$$
+%and solving for $\lambda^{*}_{c,i,t}$, we get that this empirical estimation
+%\begin{equation}
+%\label{estlambda}
+%\lambda^{*}_{c,i,t} \ \ = \ \ \left(\frac{1}{1-\hat{p}_{c,t}}\right) \left( \frac{M_{c,i,t,\bullet}^{1}}{N_{c,t} \mathcal{D}_{t}}\right)
+%\ \ = \ \ \hat{\lambda}_{c,i,t}
+%\end{equation}
+%is the maximum likelihood estimate $\hat{\lambda}_{c,i,t}$ of $\lambda_{c,i,t}$ given by \eqref{lambdaf}.
+
+Next consider a model in which the probabilities $p_{c,t}$ of not reporting the location depend on arrival type~$c$ and time period~$t$.
+Let $p := (p_{c,t}, c \in \mathcal{C}, t \in \mathcal{T})$.
+Now $Y_{c,i,t,n}$ is Poisson with mean $(1-p_{c,t}) \lambda_{c,i,t} \mathcal{D}_{t}$ and $Z_{c,t,n}$ is Poisson with mean $p_{c,t} S_{c,t} \mathcal{D}_{t}$.
+
+The likelihood of the model is given by
+\begin{align*}
+& L_{2}(p,\lambda)    = \prod_{c \in \mathcal{C}} \prod_{t \in \mathcal{T}} \prod_{n=1}^{N_{c,t}} \mathbb{P}(Z_{c,t,n} = M_{c,t,n}^{0}) \prod_{i \in \mathcal{I}} \mathbb{P}(Y_{c,i,t,n} = M_{c,i,t,n}^{1}) \\
+& =  \prod_{c \in \mathcal{C}} \prod_{t \in \mathcal{T}} \prod_{n=1}^{N_{c,t}} \exp(-p_{c,t} S_{c,t} \mathcal{D}_{t}) \frac{(p_{c,t} S_{c,t} \mathcal{D}_{t})^{M_{c,t,n}^{0}}}{M_{c,t,n}^{0}!} \prod_{i \in \mathcal{I}} \exp(-(1-p_{c,t}) \lambda_{c,i,t} \mathcal{D}_{t}) \frac{((1-p_{c,t}) \lambda_{c,i,t} \mathcal{D}_{t})^{M_{c,i,t,n}^{1}}}{M_{c,i,t,n}^{1}!}
+\end{align*}
+and therefore the log likelihood is given, up to a constant term that can be dropped for maximization, by
+\begin{align*}
+\mathscr{L}_{2}(\lambda,p) \ \ = \ \ & \sum_{c \in \mathcal{C}} \sum_{t \in \mathcal{T}} \left(-N_{c,t} S_{c,t} \mathcal{D}_{t} + M_{c,t,\bullet}^{0} \log(S_{c,t}) + \sum_{i \in \mathcal{I}} M_{c,i,t,\bullet}^{1} \log(\lambda_{c,i,t})\right) \\
+& {} + \sum_{c \in \mathcal{C}} \sum_{t \in \mathcal{T}} \Big(M_{c,t,\bullet}^{0} \log(p_{c,t}) + M_{c,\bullet,t,\bullet}^{1} \log(1-p_{c,t})\Big).
+\end{align*}
+The pair $(\hat{\lambda},\hat{p})$ maximizing $\mathscr{L}_{2}(\lambda,p)$ solves
+$$
+\frac{\partial \mathscr{L}_{2}(\hat{\lambda},\hat{p})}{\partial \lambda} \ \ = \ \ 0 \quad \mbox{and} \quad \frac{\partial \mathscr{L}_{2}(\hat{\lambda},\hat{p})}{\partial p} \ \ = \ \ 0
+$$
+which gives
+\begin{equation}
+\label{solvelp}
+\begin{array}{l}
+\displaystyle \frac{M_{c,t,\bullet}^{0}}{\hat{p}_{c,t}} - \frac{M_{c,\bullet,t,\bullet}^{1}}{1-\hat{p}_{c,t}} \ \ = \ \ 0, \quad \forall \ c \in \mathcal{C}, \ t \in \mathcal{T} \\
+\displaystyle \frac{M_{c,t,\bullet}^{0}}{\hat{S}_{c,t}} - N_{c,t} \mathcal{D}_{t} + \frac{M_{c,i,t,\bullet}^{1}}{\hat{\lambda}_{c,i,t}} \ \ = \ \ 0, \quad \forall \ c \in \mathcal{C}, \ i \in \mathcal{I}, \ t \in \mathcal{T},
+\end{array}
+\end{equation}
+where $\hat{S}_{c,t}$ is given by~\eqref{defshat}.
+Thus,
+\begin{equation}
+\label{estimpct2}
+\hat{p}_{c,t} \ \ = \ \ \frac{M_{c,t,\bullet}^{0}}{M_{c,\bullet,t,\bullet}^{1} + M_{c,t,\bullet}^{0}}.
+\end{equation}
+and $\hat{\lambda}_{c,i,t}$ is still given by~\eqref{lambdaf}, as for the previous model.
+
+Observe that when $\hat{p}_{c,t} = 0$ (that is, zones are reported for all arrivals), then $\hat{\lambda}_{c,i,t}$ equals the usual maximum likelihood estimator of a Poisson intensity, although $\mathscr{L}_{2}$ is not defined if $\hat{p}_{c,t} = 0$.
+Also, $\hat{\lambda}_{c,i,t}$ cannot be estimated if $M_{c,\bullet,t,\bullet}^{1} = 0$, that is, if $\hat{p}_{c,t} = 1$.
+
+To derive asymptotic confidence intervals for the estimators, we compute the Fisher information matrix of the models.
+For the model with log-likelihood $\mathscr{L}_{2}$ and parameter $\theta := (\lambda,p)$, the Fisher information matrix has entries $-\mathbb{E}\left[\frac{\partial^2 \mathscr{L}_{2}(\theta)}{\partial \theta_{i} \partial \theta_{j}}\right]$.
+Note that
+\begin{align*}
+-\frac{\partial \mathscr{L}_{2}(\lambda,p)}{\partial p_{c,t}} \ \ & = \ \ -\frac{M_{c,t,\bullet}^{0}}{p_{c,t}}+\frac{M_{c,\bullet,t,\bullet}^{1}}{1-p_{c,t}} \qquad \forall \ c \in \mathcal{C}, \ t \in \mathcal{T} \\
+-\frac{\partial \mathscr{L}_{2}(\lambda,p)}{\partial \lambda_{c,i,t}} \ \ & = \ \ -\frac{M_{c,t,\bullet}^{0}}{S_{c,t}} + N_{c,t} \mathcal{D}_{t} - \frac{M_{c,i,t,\bullet}^{1}}{\lambda_{c,i,t}} \qquad \forall \ c \in \mathcal{C}, \ i \in \mathcal{I}, \ t \in \mathcal{T}.
+\end{align*}
+The second-order derivatives are therefore given by
+\begin{align*}
+-\frac{\partial^2 \mathscr{L}_{2}(\lambda,p)}{\partial p_{c,t}^2} \ \ & = \ \ \frac{M_{c,t,\bullet}^{0}}{p_{c,t}^2} + \frac{M_{c,\bullet,t,\bullet}^{1}}{(1-p_{c,t})^2} \qquad \forall \ c \in \mathcal{C}, \ t \in \mathcal{T} \\
+-\frac{\partial^2 \mathscr{L}_{2}(\lambda,p)}{\partial \lambda_{c,i,t}^2} \ \ & = \ \ \frac{M_{c,t,\bullet}^{0}}{S_{c,t}^2} + \frac{M_{c,i,t,\bullet}^{1}}{\lambda_{c,i,t}^2} \qquad \forall \ c \in \mathcal{C}, \ i \in \mathcal{I}, \ t \in \mathcal{T} \\
+-\frac{\partial^2 \mathscr{L}_{2}(\lambda,p)}{\partial \lambda_{c,i,t} \partial \lambda_{c,j,t}} \ \ & = \ \ \frac{M_{c,t,\bullet}^{0}}{S_{c,t}^2} \qquad \forall \ c \in \mathcal{C}, \ i,j \in \mathcal{I} \mbox{ with } i \neq j, \ t \in \mathcal{T} \\
+-\frac{\partial^2 \mathscr{L}_{2}(\lambda,p)}{\partial \lambda_{c,i,t} \partial \lambda_{c',j,t'}} \ \ & = \ \ 0 \qquad \mbox{if } c \neq c' \mbox{ or } t \neq t' \\
+-\frac{\partial^2 \mathscr{L}_{2}(\lambda,p)}{\partial p_{c',t'} \partial \lambda_{c,i,t}} \ \ & = \ \ 0 \qquad \forall \ c,c' \in \mathcal{C}, \ i \in \mathcal{I}, \ t,t' \in \mathcal{T} \\
+-\frac{\partial^2 \mathscr{L}_{2}(\lambda,p)}{\partial p_{c,t} \partial p_{c',t'}} \ \ & = \ \ 0 \qquad \mbox{if } c \neq c' \mbox{ or } t \neq t'.
+\end{align*}
+Also,
+\begin{align*}
+\mathbb{E}[M_{c,t,\bullet}^{0}] \ \ & = \ \ p_{c,t}\mathcal{D}_{t} N_{c,t}S_{c,t} \\
+\mathbb{E}[M_{c,\bullet,t,\bullet}^{1}] \ \ & = \ \ (1-p_{c,t})\mathcal{D}_{t} |\mathcal{I}|N_{c,t}\lambda_{c,i,t} \\
+\mathbb{E}[M_{c,i,t,\bullet}^{1}] \ \ & = \ \ (1-p_{c,t})\mathcal{D}_{t} N_{c,t}\lambda_{c,i,t}.
+\end{align*}
+Thus the entries of the Fisher information matrix are given by
+\begin{align*}
+& \mathbb{E}\left[-\frac{\partial^2 \mathscr{L}_{2}(\lambda,p)}{\partial p_{c,t}^2}\right] \ \ = \ \ \frac{\mathcal{D}_{t} N_{c,t} S_{c,t}}{p_{c,t}} + \frac{\mathcal{D}_{t} |\mathcal{I}| N_{c,t} \lambda_{c,i,t}}{1-p_{c,t}} \qquad \forall \ c \in \mathcal{C}, \ t \in \mathcal{T} \\
+& \mathbb{E}\left[-\frac{\partial^2 \mathscr{L}_{2}(\lambda,p)}{\partial \lambda_{c,i,t}^2}\right] \ \ = \ \ \frac{p_{c,t} \mathcal{D}_{t} N_{c,t}}{S_{c,t}} + \frac{(1-p_{c,t}) \mathcal{D}_{t} N_{c,t}}{ \lambda_{c,i,t}} \qquad \forall \ c \in \mathcal{C}, \ i \in \mathcal{I}, \ t \in \mathcal{T}\\
+& \mathbb{E}\left[-\frac{\partial^2 \mathscr{L}_{2}(\lambda,p)}{\partial \lambda_{c,i,t} \partial \lambda_{c,j,t}}\right] \ \ = \ \ \frac{p_{c,t}\mathcal{D}_{t} N_{c,t}}{S_{c,t}} \qquad \forall \ c \in \mathcal{C}, \ i, j \in \mathcal{I} \mbox{ with } i \neq j, \ t \in \mathcal{T}.
+\end{align*}
+Variance estimates of the maximum likelihood estimators $\hat{\lambda}_{c,i,t}$ and $\hat{p}_{c,t}$ of $\lambda_{c,i,t}$ and $p_{c,t}$ are found on the diagonal of the inverse $I(\theta)^{-1}$ of the Fisher information matrix $I(\theta)$.
+For example, with $\hat{V}^{\lambda}_{c,i,t}$ denoting the estimated variance of $\hat{\lambda}_{c,i,t}$, an asymptotic $1-\alpha$ confidence interval for $\lambda_{c,i,t}$ is given by
+$$
+\left[\hat{\lambda}_{c,i,t} - \Phi^{-1}(1-\alpha/2) \sqrt{\hat{V}^{\lambda}_{c,i,t}}, \ \hat{\lambda}_{c,i,t} + \Phi^{-1}(1-\alpha/2) \sqrt{\hat{V}^{\lambda}_{c,i,t}}\right]
+$$
+where $\Phi^{-1}(1-\alpha/2)$ denotes the $1-\alpha/2$ quantile of the standard normal distribution.
+Similarly, a confidence interval for $p_{c,t}$ can be derived from $\hat{p}_{c,t}$ and $I(\theta)^{-1}$.
