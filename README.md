@@ -2,7 +2,7 @@
 
 This repository contains MATLAB/Octave functions to estimate and optimize telephone call models (with or without location information) using **Projected Gradient** methods. Below is a brief description of each function and usage instructions.
 
-The article can be found here: 
+The article can be found here: https://arxiv.org/abs/2410.11103
 ---
 
 ## 1. Main Functions
